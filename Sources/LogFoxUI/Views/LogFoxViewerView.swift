@@ -51,22 +51,64 @@ public struct LogFoxViewerView: View {
 
     @ViewBuilder
     private var logList: some View {
-        let entries = model.filteredEntries
         if model.isLoading {
             ProgressView("Geçmiş yükleniyor…")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if entries.isEmpty {
+        } else if model.scope == .history {
+            historyList
+        } else {
+            sessionList
+        }
+    }
+
+    /// Mevcut oturum — düz liste (en yeni üstte).
+    @ViewBuilder
+    private var sessionList: some View {
+        let entries = model.filteredEntries
+        if entries.isEmpty {
             ContentUnavailableView("Kayıt yok", systemImage: "doc.text.magnifyingglass", description: Text("Filtreyle eşleşen log bulunamadı."))
                 .frame(maxHeight: .infinity)
         } else {
             List(entries) { entry in
-                NavigationLink(value: entry) {
-                    LogRowView(entry: entry)
-                }
+                NavigationLink(value: entry) { LogRowView(entry: entry) }
             }
             .listStyle(.plain)
             .navigationDestination(for: LogEntry.self) { LogDetailView(entry: $0) }
         }
+    }
+
+    /// Geçmiş — önceki oturumlara göre gruplanmış (her oturum bir bölüm).
+    @ViewBuilder
+    private var historyList: some View {
+        let sessions = model.sessionGroups
+        if sessions.isEmpty {
+            ContentUnavailableView("Geçmiş oturum yok", systemImage: "clock.arrow.circlepath", description: Text("Önceki oturumlardan log bulunamadı."))
+                .frame(maxHeight: .infinity)
+        } else {
+            List {
+                ForEach(sessions) { session in
+                    Section {
+                        ForEach(session.entries) { entry in
+                            NavigationLink(value: entry) { LogRowView(entry: entry) }
+                        }
+                    } header: {
+                        sessionHeader(session)
+                    }
+                }
+            }
+            .listStyle(.insetGrouped)
+            .navigationDestination(for: LogEntry.self) { LogDetailView(entry: $0) }
+        }
+    }
+
+    private func sessionHeader(_ session: LogViewerModel.LogSession) -> some View {
+        HStack {
+            Label(session.startDate.formatted(date: .abbreviated, time: .standard), systemImage: "clock")
+            Spacer()
+            Text("\(session.entries.count) kayıt")
+        }
+        .font(.caption)
+        .textCase(nil)
     }
 
     // MARK: - Toolbar

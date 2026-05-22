@@ -8,6 +8,7 @@ final class LogFoxRuntime: @unchecked Sendable {
     private var _store: LogStore?
     private var _minimumLevel: LogLevel = .debug
     private var _enabled = true
+    private var _sessionID = ""
 
     /// `start()` çağrılmadan ÖNCE atılan loglar buraya tamponlanır ve start'ta flush edilir.
     /// (Uygulama açılışındaki erken loglar — örn. splash — kaybolmasın.)
@@ -40,6 +41,8 @@ final class LogFoxRuntime: @unchecked Sendable {
         lock.lock(); defer { lock.unlock() }
         guard _store == nil else { return }
 
+        _sessionID = Self.makeSessionID()
+
         let persistence: FilePersistence?
         if configuration.persistsToDisk {
             persistence = FilePersistence(
@@ -60,7 +63,8 @@ final class LogFoxRuntime: @unchecked Sendable {
             redactor: configuration.redactor,
             persistence: persistence,
             exportFormatter: configuration.exportFormatter,
-            osLogMirror: mirror
+            osLogMirror: mirror,
+            sessionID: _sessionID
         )
         _minimumLevel = configuration.minimumLevel
 
@@ -93,6 +97,12 @@ final class LogFoxRuntime: @unchecked Sendable {
     var isStarted: Bool {
         lock.lock(); defer { lock.unlock() }
         return _store != nil
+    }
+
+    /// Mevcut oturum kimliği (`start()` sonrası dolar; öncesinde boş).
+    var currentSessionID: String {
+        lock.lock(); defer { lock.unlock() }
+        return _sessionID
     }
 
     var isEnabled: Bool {
@@ -134,6 +144,11 @@ final class LogFoxRuntime: @unchecked Sendable {
     }
 
     // MARK: - Yardımcılar
+
+    /// Oturum kimliği: zaman damgası tabanlı sıralanabilir bir önek + kısa rastgele kuyruk.
+    static func makeSessionID() -> String {
+        "\(Int(Date().timeIntervalSince1970 * 1000))-\(UUID().uuidString.prefix(8))"
+    }
 
     static func defaultLogDirectory() -> URL {
         let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first

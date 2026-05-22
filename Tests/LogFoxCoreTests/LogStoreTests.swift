@@ -9,7 +9,8 @@ final class LogStoreTests: XCTestCase {
             redactor: redactor,
             persistence: nil,
             exportFormatter: PlainTextFormatter(),
-            osLogMirror: nil
+            osLogMirror: nil,
+            sessionID: "test-session"
         )
     }
 

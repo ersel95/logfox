@@ -28,6 +28,9 @@ public enum LogFox {
     /// LogFox başlatıldı mı?
     public static var isStarted: Bool { runtime.isStarted }
 
+    /// Mevcut uygulama oturumunun kimliği (her `start()` yeni üretir). Geçmişte oturum gruplama için.
+    public static var currentSessionID: String { runtime.currentSessionID }
+
     // MARK: - Log API
 
     public static func log(

@@ -12,6 +12,7 @@ final class LogStore: @unchecked Sendable {
     private let persistence: FilePersistence?
     private let exportFormatter: any LogFormatter
     private let osLogMirror: OSLogMirror?
+    private let sessionID: String
 
     /// Sabit kapasiteli halka tampon (en yeni `capacity` kayıt).
     private var buffer: [LogEntry] = []
@@ -23,13 +24,15 @@ final class LogStore: @unchecked Sendable {
         redactor: any Redactor,
         persistence: FilePersistence?,
         exportFormatter: any LogFormatter,
-        osLogMirror: OSLogMirror?
+        osLogMirror: OSLogMirror?,
+        sessionID: String
     ) {
         self.capacity = capacity
         self.redactor = redactor
         self.persistence = persistence
         self.exportFormatter = exportFormatter
         self.osLogMirror = osLogMirror
+        self.sessionID = sessionID
         self.buffer.reserveCapacity(capacity)
     }
 
@@ -57,7 +60,8 @@ final class LogStore: @unchecked Sendable {
                 file: file,
                 line: line,
                 function: function,
-                thread: thread
+                thread: thread,
+                sessionID: sessionID
             )
 
             buffer.append(entry)

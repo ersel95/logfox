@@ -117,6 +117,34 @@ public final class LogViewerModel: ObservableObject {
         }
     }
 
+    // MARK: - Oturum gruplama (geçmiş için)
+
+    /// Bir uygulama oturumunun gruplanmış logları.
+    public struct LogSession: Identifiable {
+        public let id: String        // sessionID
+        public let startDate: Date   // oturumdaki en erken kayıt
+        public let entries: [LogEntry]  // en yeni üstte
+    }
+
+    /// Geçmişteki kayıtları oturuma göre gruplar — **mevcut oturum hariç** (o "Oturum" sekmesinde).
+    /// Oturumlar en yeniden eskiye sıralanır; içleri en yeni üstte.
+    public var sessionGroups: [LogSession] {
+        let current = LogFox.currentSessionID
+        var grouped: [String: [LogEntry]] = [:]
+        var order: [String] = []
+        for entry in filteredEntries where entry.sessionID != current {
+            if grouped[entry.sessionID] == nil { order.append(entry.sessionID) }
+            grouped[entry.sessionID, default: []].append(entry)
+        }
+        return order
+            .map { id in
+                let items = grouped[id] ?? []
+                let start = items.map(\.date).min() ?? .distantPast
+                return LogSession(id: id, startDate: start, entries: items)
+            }
+            .sorted { $0.startDate > $1.startDate }
+    }
+
     // MARK: - Aksiyonlar
 
     public func toggleCategory(_ category: LogCategory) {
