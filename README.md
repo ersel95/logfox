@@ -51,29 +51,23 @@ LogFox.isEnabled = false
 
 ### In-app viewer (LogFoxUI) + Netfox / Pulse geçişi
 
-LogFox, **Netfox** ve **Pulse** ile uyumludur. Paket bunlara bağlı değildir; host app `#if canImport`
-ile hangilerinin yüklü olduğunu tespit eder ve etkin geçiş köprülerini **init'te** gönderir:
+LogFox, **Netfox** ve **Pulse** ile uyumludur. Paket bunlara bağlı değildir. Bir projede **yalnız bir**
+network logger aktiftir; host bunu bir enum ile init'te seçer. Köprüler host tarafında `#if canImport`
+ile tanımlıdır (`Integration/LogFoxIntegration.swift`):
 
 ```swift
-import LogFoxUI
+// Host entegrasyon dosyasında:
+public enum LogFoxNetworkLogger { case netfox, pulse, none }
 
-var tools: [any ExternalToolBridge] = []
-#if canImport(netfox)
-if config.enableNetfox { tools.append(NetfoxBridge()) }   // app tarafında tanımlı köprü
-#endif
-#if canImport(PulseUI)
-if config.enablePulse  { tools.append(PulseBridge())  }
-#endif
+LogFoxManager.shared.initialize(networkLogger: .netfox)   // .netfox / .pulse / .none
 
-LogFoxUI.install(tools: tools)   // shake → viewer; karar pakete init'te gönderilir
-
-// Programatik:
-LogFoxUI.present()
-LogFoxUI.dismiss()
-LogFoxUI.presentExternal { ConsoleView() }   // Pulse gibi gömülebilir araçlar için
+// Paket API'si (host köprüleri bununla kaydeder):
+LogFoxUI.install(tools: bridges)              // shake → viewer
+LogFoxUI.present(); LogFoxUI.dismiss()
+LogFoxUI.presentExternal { ConsoleView() }    // Pulse gibi gömülebilir araçlar için
 ```
 
-Shake sahibi LogFox'tur; viewer içinden **yalnız link'li ve etkin** araçlara (Netfox/Pulse) geçilir.
+Shake sahibi LogFox'tur; viewer içinden **seçilen tek** araca (Netfox **veya** Pulse) geçilir.
 Netfox kullanılıyorsa shake'ini kapatın (`NFX.sharedInstance().setGesture(.custom)`).
 
 - **Adım adım entegrasyon:** [`INTEGRATION.md`](INTEGRATION.md)

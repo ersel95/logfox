@@ -27,6 +27,7 @@ public struct LogFoxViewerView: View {
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $model.searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Loglarda ara")
             .toolbar { toolbarContent }
+            .safeAreaInset(edge: .bottom) { externalToolBar }
             .sheet(isPresented: $isSharePresented) {
                 if let shareURL {
                     ShareSheet(items: [shareURL])
@@ -80,8 +81,6 @@ public struct LogFoxViewerView: View {
                 levelMenu
                 followToggle
                 Divider()
-                externalToolButtons
-                Divider()
                 Button { share() } label: { Label("Paylaş", systemImage: "square.and.arrow.up") }
                 Button(role: .destructive) { model.clear() } label: { Label("Temizle", systemImage: "trash") }
             } label: {
@@ -107,14 +106,28 @@ public struct LogFoxViewerView: View {
         }
     }
 
+    /// Ana ekranda her zaman görünen, seçilen network logger'a (Netfox/Pulse) tek dokunuşla
+    /// geçiş için belirgin alt bar. Kayıtlı araç yoksa hiç görünmez.
     @ViewBuilder
-    private var externalToolButtons: some View {
-        ForEach(Array(model.externalTools.enumerated()), id: \.offset) { _, tool in
-            Button {
-                tool.open()
-            } label: {
-                Label(tool.title, systemImage: tool.systemImage ?? "arrow.up.right.square")
+    private var externalToolBar: some View {
+        let tools = model.externalTools
+        if !tools.isEmpty {
+            HStack(spacing: 12) {
+                ForEach(Array(tools.enumerated()), id: \.offset) { _, tool in
+                    Button {
+                        tool.open()
+                    } label: {
+                        Label(tool.title, systemImage: tool.systemImage ?? "arrow.up.right.square")
+                            .font(.callout.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
             }
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+            .background(.bar)
         }
     }
 

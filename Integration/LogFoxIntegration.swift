@@ -5,7 +5,8 @@
 //
 //  Bu dosya:
 //   • LogFox'u NetfoxManager paterniyle başlatır,
-//   • Netfox ve/veya Pulse YÜKLÜYSE (#if canImport) ve host onları ETKİNLEŞTİRDİYSE geçiş köprülerini kaydeder,
+//   • Projede aktif olan TEK network logger'ı (.netfox / .pulse / .none) enum ile seçer,
+//   • seçilen araç YÜKLÜYSE (#if canImport) geçiş köprüsünü kaydeder,
 //   • kararı init sırasında LogFoxUI.install(tools:) ile pakete gönderir.
 
 import Foundation
@@ -21,15 +22,11 @@ import PulseUI
 
 // MARK: - Host konfigürasyonu
 
-/// Host'un hangi dış araçlara geçişe izin verdiği. Init sırasında verilir.
-public struct LogFoxToolsConfig {
-    public var enableNetfox: Bool
-    public var enablePulse: Bool
-
-    public init(enableNetfox: Bool = true, enablePulse: Bool = true) {
-        self.enableNetfox = enableNetfox
-        self.enablePulse = enablePulse
-    }
+/// Projede aktif olan network logger. Bir projede yalnız BİRİ kullanılır.
+public enum LogFoxNetworkLogger {
+    case netfox
+    case pulse
+    case none
 }
 
 // MARK: - Entegrasyon yöneticisi (NetfoxManager muadili)
@@ -39,8 +36,9 @@ public final class LogFoxManager {
     public static let shared = LogFoxManager()
     private init() {}
 
-    /// LogFox'u başlatır ve etkin dış araç köprülerini kaydeder.
-    public func initialize(tools: LogFoxToolsConfig = LogFoxToolsConfig()) {
+    /// LogFox'u başlatır ve seçilen network logger'a geçiş köprüsünü kaydeder.
+    /// - Parameter networkLogger: Projede aktif olan tek network logger (`.netfox` / `.pulse` / `.none`).
+    public func initialize(networkLogger: LogFoxNetworkLogger = .none) {
         #if !PROD
         // ADAPT: feature flag kontrolünüz (NetfoxManager'daki Feature.isDisabled(.netfox) ile aynı patern).
         // guard Feature.isEnabled(.logFox) else { return }
@@ -50,17 +48,18 @@ public final class LogFoxManager {
         Task { @MainActor in
             var bridges: [any ExternalToolBridge] = []
 
-            #if canImport(netfox)
-            if tools.enableNetfox {
+            switch networkLogger {
+            case .netfox:
+                #if canImport(netfox)
                 bridges.append(NetfoxBridge())
-            }
-            #endif
-
-            #if canImport(PulseUI)
-            if tools.enablePulse {
+                #endif
+            case .pulse:
+                #if canImport(PulseUI)
                 bridges.append(PulseBridge())
+                #endif
+            case .none:
+                break
             }
-            #endif
 
             LogFoxUI.install(tools: bridges)   // karar pakete init'te gönderilir
         }

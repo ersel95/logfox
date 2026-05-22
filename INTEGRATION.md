@@ -2,7 +2,7 @@
 
 LogFox'u uygulamaya, **Netfox** ve **Pulse** ile uyumlu olacak şekilde bağlamak için rehber.
 
-> **Tasarım ilkesi:** Paket Netfox/Pulse'a **bağlı değildir**. Bu araçlara geçiş host app tarafında, `#if canImport(...)` ile opsiyonel olarak kurulur. Host, hangi araçlara geçişe izin verdiğini **init sırasında** `LogFoxUI.install(tools:)` ile pakete gönderir. Hızlı yol için: tek-dosya template [`Integration/LogFoxIntegration.swift`](Integration/LogFoxIntegration.swift) ve makine-takipli [`AGENTS.md`](AGENTS.md).
+> **Tasarım ilkesi:** Paket Netfox/Pulse'a **bağlı değildir**. Bu araçlara geçiş host app tarafında, `#if canImport(...)` ile opsiyonel olarak kurulur. Bir projede **yalnız bir** network logger aktiftir; host hangisini kullandığını bir enum (`.netfox` / `.pulse` / `.none`) ile **init sırasında** seçer. Hızlı yol için: tek-dosya template [`Integration/LogFoxIntegration.swift`](Integration/LogFoxIntegration.swift) ve makine-takipli [`AGENTS.md`](AGENTS.md).
 
 > **Gating notu:** TestFlight build'i genelde UAT/Prod config'tedir; `#if DEBUG` yalnız Test config'te tanımlıdır. LogFox'u `#if DEBUG`'a bağlama — **runtime feature flag** kullan. PROD davranışını siz ayarlarsınız.
 
@@ -13,9 +13,9 @@ LogFox'u uygulamaya, **Netfox** ve **Pulse** ile uyumlu olacak şekilde bağlama
 `#if canImport(PulseUI)` derleme zamanında **modül o target'a link'liyse** doğrudur. LogFox paketi Netfox/Pulse'a bağlı olmadığından, paket içinde `canImport(PulseUI)` **her zaman `false`** döner. Bu yüzden tespit, Netfox/Pulse'ın gerçekten link'lendiği **host app**'te yapılır. Host, sonucu (etkin köprüler listesini) init'te pakete verir → "karar SPM'e init'te gönderilir".
 
 ```
-Host app  ──(canImport tespiti + enable flag)──►  LogFoxUI.install(tools: [...])
-                                                         │
-shake ──► LogFox viewer ──► [Netfox] / [Pulse] butonları (yalnız etkin olanlar)
+Host app  ──(seçili logger: .netfox/.pulse/.none + canImport)──►  LogFoxUI.install(tools: [...])
+                                                                        │
+shake ──► LogFox viewer ──► [Netfox] veya [Pulse] butonu (seçilen tek araç)
 ```
 
 ---
@@ -30,7 +30,7 @@ Xcode → Add Packages → `https://github.com/ersel95/logfox` → ana app targe
 
 ## 2. Entegrasyon dosyasını kopyala
 
-[`Integration/LogFoxIntegration.swift`](Integration/LogFoxIntegration.swift) dosyasını host app'e (örn. `Core/Utils/`) kopyalayın. İçinde `LogFoxManager`, `LogFoxToolsConfig` ve canImport-gate'li `NetfoxBridge` + `PulseBridge` hazırdır. `// ADAPT:` satırlarını uyarlayın.
+[`Integration/LogFoxIntegration.swift`](Integration/LogFoxIntegration.swift) dosyasını host app'e (örn. `Core/Utils/`) kopyalayın. İçinde `LogFoxManager`, `LogFoxNetworkLogger` enum'u ve canImport-gate'li `NetfoxBridge` + `PulseBridge` hazırdır. `// ADAPT:` satırlarını uyarlayın.
 
 Özet (tam içerik template dosyasında):
 
@@ -44,21 +44,30 @@ import netfox
 import PulseUI
 #endif
 
+/// Projede aktif olan tek network logger.
+public enum LogFoxNetworkLogger { case netfox, pulse, none }
+
 public final class LogFoxManager {
     public static let shared = LogFoxManager()
     private init() {}
 
-    public func initialize(tools: LogFoxToolsConfig = LogFoxToolsConfig()) {
+    public func initialize(networkLogger: LogFoxNetworkLogger = .none) {
         #if !PROD
         LogFox.start(.bankingDefault)
         Task { @MainActor in
             var bridges: [any ExternalToolBridge] = []
-            #if canImport(netfox)
-            if tools.enableNetfox { bridges.append(NetfoxBridge()) }
-            #endif
-            #if canImport(PulseUI)
-            if tools.enablePulse { bridges.append(PulseBridge()) }
-            #endif
+            switch networkLogger {
+            case .netfox:
+                #if canImport(netfox)
+                bridges.append(NetfoxBridge())
+                #endif
+            case .pulse:
+                #if canImport(PulseUI)
+                bridges.append(PulseBridge())
+                #endif
+            case .none:
+                break
+            }
             LogFoxUI.install(tools: bridges)
         }
         #endif
@@ -112,9 +121,7 @@ private struct PulseConsoleScreen: View {
 ```swift
 DispatchQueue.main.async {
     NetfoxManager.shared.initialize()   // (Netfox kullanılıyorsa) içinde setGesture(.custom)
-    LogFoxManager.shared.initialize(
-        tools: LogFoxToolsConfig(enableNetfox: true, enablePulse: true)
-    )
+    LogFoxManager.shared.initialize(networkLogger: .netfox)   // .netfox / .pulse / .none
 }
 ```
 

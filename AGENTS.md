@@ -16,19 +16,19 @@ Bir AI agent "LogFox'u entegre et" komutu aldığında **bu dosyayı** takip ede
 
 ### 2. Entegrasyon dosyasını kopyala
 `Integration/LogFoxIntegration.swift` dosyasını host app kaynaklarına kopyala (örn. `Core/Utils/`).
-Bu dosya: `LogFoxManager` + `LogFoxToolsConfig` + (canImport-gate'li) `NetfoxBridge` & `PulseBridge` içerir.
+Bu dosya: `LogFoxManager` + `LogFoxNetworkLogger` enum'u + (canImport-gate'li) `NetfoxBridge` & `PulseBridge` içerir.
 `// ADAPT:` ile işaretli satırları projeye uyarla:
 - Feature-flag kontrolü (varsa). Yoksa satırı kaldır.
 - `#if !PROD` derleme koşulu projede yoksa, projenin eşdeğer koşuluyla değiştir veya kaldır.
 
 ### 3. Başlatmayı bağla
+Bir projede **yalnız bir** network logger aktiftir. Önce projede hangisinin kullanıldığını tespit et
+(`NFX`/`netfox` import'u → `.netfox`; `Pulse`/`PulseUI` import'u → `.pulse`; ikisi de yoksa → `.none`).
 App giriş noktasında (SwiftUI `App.init` veya `AppDelegate.didFinishLaunching`), mevcut başlatmaların yanına:
 ```swift
-LogFoxManager.shared.initialize(
-    tools: LogFoxToolsConfig(enableNetfox: true, enablePulse: true)
-)
+LogFoxManager.shared.initialize(networkLogger: .netfox)   // .netfox / .pulse / .none
 ```
-`enableNetfox` / `enablePulse` = host'un o araca geçişe izin verip vermediği. İlgili modül link'li değilse `canImport` zaten köprüyü atlar (flag etkisiz olur, hata olmaz).
+Seçilen araç link'li değilse `canImport` köprüyü atlar (hata olmaz, sadece geçiş butonu görünmez).
 
 ### 4. Netfox kullanılıyorsa: shake'i LogFox'a devret
 Projede Netfox başlatılan yeri bul (`NFX.sharedInstance().start()`), hemen ardına ekle:
@@ -39,7 +39,7 @@ NFX.sharedInstance().setGesture(.custom)   // shake artık LogFox'un
 
 ### 5. Doğrula
 - Derle. Hata yoksa: cihazı salla → LogFox viewer açılır.
-- Viewer toolbar (•••) menüsünde, **yalnız link'li ve etkin** araçlar buton olarak görünür ("Netfox", "Pulse").
+- Viewer toolbar (•••) menüsünde, **seçilen ve link'li** tek network logger buton olarak görünür ("Netfox" veya "Pulse").
 - Netfox butonu → LogFox kapanır, Netfox açılır. Pulse butonu → Pulse konsolu LogFox üzerinde açılır.
 
 ## Davranış kuralları (agent için)
