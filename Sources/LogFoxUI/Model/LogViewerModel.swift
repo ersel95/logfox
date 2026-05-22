@@ -18,7 +18,8 @@ public final class LogViewerModel: ObservableObject {
 
     /// Filtreler.
     @Published public var searchText: String = ""
-    @Published public var minimumLevel: LogLevel = .trace
+    /// Gösterilecek seviyeler (Pulse tarzı çoklu seçim). Boş = hepsi.
+    @Published public var enabledLevels: Set<LogLevel> = Set(LogLevel.allCases)
     @Published public var selectedCategories: Set<LogCategory> = []
 
     /// `true` iken yeni loglar canlı eklenir; `false` (duraklat) iken liste dondurulur.
@@ -92,7 +93,7 @@ public final class LogViewerModel: ObservableObject {
     public var filteredEntries: [LogEntry] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         return entries.reversed().filter { entry in
-            guard entry.level >= minimumLevel else { return false }
+            if !enabledLevels.isEmpty, !enabledLevels.contains(entry.level) { return false }
             if !selectedCategories.isEmpty, !selectedCategories.contains(entry.category) {
                 return false
             }
@@ -113,6 +114,24 @@ public final class LogViewerModel: ObservableObject {
         } else {
             selectedCategories.insert(category)
         }
+    }
+
+    public func toggleLevel(_ level: LogLevel) {
+        if enabledLevels.contains(level) {
+            enabledLevels.remove(level)
+        } else {
+            enabledLevels.insert(level)
+        }
+    }
+
+    /// Varsayılan dışı bir filtre uygulanmış mı? (funnel rozetinde gösterilir)
+    public var isFiltering: Bool {
+        enabledLevels.count != LogLevel.allCases.count || !selectedCategories.isEmpty
+    }
+
+    public func resetFilters() {
+        enabledLevels = Set(LogLevel.allCases)
+        selectedCategories.removeAll()
     }
 
     public func clear() {

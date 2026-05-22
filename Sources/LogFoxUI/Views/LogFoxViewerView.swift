@@ -10,6 +10,7 @@ public struct LogFoxViewerView: View {
 
     @State private var shareURL: URL?
     @State private var isSharePresented = false
+    @State private var isFilterPresented = false
 
     public init(onClose: @escaping () -> Void = {}) {
         self.onClose = onClose
@@ -32,6 +33,9 @@ public struct LogFoxViewerView: View {
                 if let shareURL {
                     ShareSheet(items: [shareURL])
                 }
+            }
+            .sheet(isPresented: $isFilterPresented) {
+                LogFilterView(model: model)
             }
         }
         .onAppear { model.start() }
@@ -77,22 +81,21 @@ public struct LogFoxViewerView: View {
             Button("Kapat") { onClose() }
         }
         ToolbarItem(placement: .topBarTrailing) {
+            Button {
+                isFilterPresented = true
+            } label: {
+                Image(systemName: model.isFiltering ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+            }
+            .accessibilityLabel("Filtreler")
+        }
+        ToolbarItem(placement: .topBarTrailing) {
             Menu {
-                levelMenu
                 followToggle
                 Divider()
                 Button { share() } label: { Label("Paylaş", systemImage: "square.and.arrow.up") }
                 Button(role: .destructive) { model.clear() } label: { Label("Temizle", systemImage: "trash") }
             } label: {
                 Image(systemName: "ellipsis.circle")
-            }
-        }
-    }
-
-    private var levelMenu: some View {
-        Picker("Min. Seviye", selection: $model.minimumLevel) {
-            ForEach(LogLevel.allCases, id: \.self) { level in
-                Text("\(level.symbol) \(level.name)").tag(level)
             }
         }
     }
