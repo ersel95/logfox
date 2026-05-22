@@ -12,8 +12,8 @@ Tasarım/fizibilite detayları için ana projedeki `LOGFOX_REPORT.md`'ye bakın.
 |---|---|---|
 | **0 — İskelet** | SPM, model'ler | ✅ |
 | **1 — Core motor** | Ring buffer, redaksiyon, disk persistans, OSLog köprüsü, facade | ✅ |
-| 2 — Viewer (LogFoxUI) | Shake → SwiftUI düz metin viewer, filtre/arama/paylaşım | ⏳ |
-| 3 — Netfox bridge | Shake sahipliği + "Netfox'a geç" butonu | ⏳ |
+| **2 — Viewer (LogFoxUI)** | Shake → SwiftUI düz metin viewer, filtre/arama/paylaşım, canlı akış | ✅ |
+| **3 — Netfox köprüsü** | `ExternalToolBridge` protokolü + shake sahipliği devri (app tarafı: `INTEGRATION.md`) | ✅ |
 | 4 — Köprüler | OSLogStore importer, swift-log backend | ⏳ |
 
 ## Kurulum (SPM)
@@ -45,6 +45,26 @@ LogFox.clear()
 // Kill switch:
 LogFox.isEnabled = false
 ```
+
+### In-app viewer (LogFoxUI)
+
+```swift
+import LogFoxUI
+
+// Uygulama başlangıcında (LogFox.start'tan sonra):
+LogFoxUI.install()                    // cihaz sallandığında viewer açılır
+
+// Başka bir araca (örn. Netfox) geçiş butonu — app tarafında köprü kaydı:
+LogFoxUI.register(NetfoxBridge())     // ExternalToolBridge'e uyan app tipi
+
+// Programatik:
+LogFoxUI.present()
+LogFoxUI.dismiss()
+```
+
+Shake sahibi LogFox'tur. Netfox da kullanılıyorsa onun shake'ini kapatın
+(`NFX.sharedInstance().setGesture(.custom)`); geçiş, viewer'daki köprü butonuyla yapılır.
+**YapiKredi entegrasyonu için adım adım:** [`INTEGRATION.md`](INTEGRATION.md).
 
 ## Mimari (Core)
 

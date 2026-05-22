@@ -34,7 +34,7 @@ public struct PlainTextFormatter: LogFormatter {
     }
 
     /// Sabit, locale-bağımsız zaman biçimi (sıralama ve okuma tutarlılığı için).
-    static let timeFormatter: DateFormatter = {
+    public static let timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "HH:mm:ss.SSS"

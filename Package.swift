@@ -8,8 +8,10 @@ let package = Package(
         .macOS(.v14) // Core, UIKit'siz olduğu için macOS'ta da test edilebilir
     ],
     products: [
-        // Faz 0+1: yalnız Core. LogFoxUI / LogFoxNetfoxBridge sonraki fazlarda eklenecek.
-        .library(name: "LogFoxCore", targets: ["LogFoxCore"])
+        // Çekirdek motor (UIKit/SwiftUI'sız, her platformda).
+        .library(name: "LogFoxCore", targets: ["LogFoxCore"]),
+        // In-app viewer (shake → düz metin). iOS hedefli; içerik `#if canImport(UIKit)` ile gate'li.
+        .library(name: "LogFoxUI", targets: ["LogFoxUI"])
     ],
     targets: [
         .target(
@@ -18,9 +20,20 @@ let package = Package(
                 .enableExperimentalFeature("StrictConcurrency")
             ]
         ),
+        .target(
+            name: "LogFoxUI",
+            dependencies: ["LogFoxCore"],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency")
+            ]
+        ),
         .testTarget(
             name: "LogFoxCoreTests",
             dependencies: ["LogFoxCore"]
+        ),
+        .testTarget(
+            name: "LogFoxUITests",
+            dependencies: ["LogFoxUI"]
         )
     ]
 )
