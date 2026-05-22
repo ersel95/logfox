@@ -71,6 +71,11 @@ final class LogFoxURLProtocol: URLProtocol {
             event.responseBody = bodyString(from: responseData, limit: config.maxBodyLength)
         }
 
+        if config.capturesHeaders {
+            event.requestHeaders = request.allHTTPHeaderFields
+            event.responseHeaders = (http?.allHeaderFields as? [String: String])
+        }
+
         // Redaksiyon LogFox.log içinde (BankingRedactor) otomatik uygulanır.
         LogFox.log(
             NetworkLogComposer.level(statusCode: event.statusCode, error: event.error),

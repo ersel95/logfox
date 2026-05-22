@@ -76,10 +76,13 @@ Netfox kullanılıyorsa shake'ini kapatın (`NFX.sharedInstance().setGesture(.cu
 
 ```swift
 import LogFoxNetwork
-LogFoxNetwork.install(into: sessionConfiguration)   // veya .installGlobally()
+LogFoxNetwork.install(into: sessionConfiguration)   // gövde+header default açık; veya .installGlobally()
+// parametreleri init'te kısmak için:
+LogFoxNetwork.install(into: sessionConfiguration, with: LogFoxNetworkConfiguration(capturesBodies: false))
 ```
 İstek/yanıtlar `.network` kategorisinde, **BankingRedactor'dan geçerek** LogFox listesine düşer
-(app + network tek yerde). Gövde yakalama (`capturesBodies`) banking-grade nedeniyle default kapalı.
+(app + network tek yerde). Gövde + header yakalama **default açık**; `Authorization`/`Cookie` ve
+PAN/IBAN/token maskelenir. Yakalama parametreleri `install(into:with:)` ile init'te verilir.
 
 - **Adım adım entegrasyon:** [`INTEGRATION.md`](INTEGRATION.md)
 - **AI agent için makine-takipli talimat:** [`AGENTS.md`](AGENTS.md)

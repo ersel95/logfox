@@ -57,8 +57,8 @@ enjeksiyonunun yanı) ve ekle:
 import LogFoxNetwork
 LogFoxNetwork.install(into: configuration)   // veya LogFoxNetwork.installGlobally()
 ```
-İstek/yanıtlar `.network` kategorisinde, redaksiyondan geçerek LogFox'a düşer. `capturesBodies`
-default kapalı (banking-grade); gerekiyorsa `LogFoxNetwork.configuration` ile aç.
+İstek/yanıtlar `.network` kategorisinde, redaksiyondan geçerek LogFox'a düşer. Gövde + header
+yakalama **default açık**; kısmak istersen init'te ver: `install(into: config, with: LogFoxNetworkConfiguration(capturesBodies: false))`.
 
 ## Genişletme: yeni bir araç eklemek
 Herhangi bir tanılama aracına geçiş, `ExternalToolBridge`'e uyan bir tip + host'ta `canImport` ile eklenir:

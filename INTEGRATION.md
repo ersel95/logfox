@@ -144,26 +144,31 @@ LogFox kendi `URLProtocol`'ü ile istek/yanıtları yakalayıp `.network` katego
 geçirerek** (PAN/IBAN/token maskeli) loglar. Böylece app + network logları tek listede görünür; Netfox/Pulse'a
 geçiş butonu derin inceleme için kalır.
 
+Yakalama parametreleri (gövde/header) **default açık** ve **init'te** verilir:
+
 ```swift
 import LogFoxNetwork
 
-// (ops.) yapılandırma — gövde yakalama banking-grade nedeniyle default KAPALI:
-LogFoxNetwork.configuration = LogFoxNetworkConfiguration(capturesBodies: false)
-
 // A) Custom URLSession/Alamofire config (ÖNERİLEN — BaseService'te NFXProtocol enjeksiyonunun yanına):
-//    configuration.protocolClasses başına LogFox protokolünü ekler.
-LogFoxNetwork.install(into: sessionConfiguration)
+LogFoxNetwork.install(into: sessionConfiguration)   // default config: gövde + header açık
+
+// İsterseniz parametreleri init'te kısın:
+LogFoxNetwork.install(
+    into: sessionConfiguration,
+    with: LogFoxNetworkConfiguration(capturesBodies: false, capturesHeaders: true, maxBodyLength: 8000)
+)
 
 // B) veya URLSession.shared / global istekler için:
-LogFoxNetwork.installGlobally()
+LogFoxNetwork.installGlobally()                     // veya .installGlobally(myConfig)
 ```
 
 > **YapiKredi'de:** `BaseService` içinde `#if !PROD` ile `NFXProtocol` `configuration.protocolClasses`'a
 > eklenen yere, `LogFoxNetwork.install(into: configuration)` satırını ekleyin. Network kayıtları viewer'da
 > `network` kategori chip'iyle görünür, kategori filtresinden ayrılabilir.
 >
-> **Güvenlik:** `capturesBodies` açılırsa gövdeler de loglanır (yine redaksiyondan geçer ama keyfi JSON'daki
-> her PII garanti yakalanamaz). Banking için kapalı bırakmanız önerilir.
+> **Güvenlik:** Gövde/header default açıktır → tüm trafik loglanır. Hepsi `BankingRedactor`'dan geçer
+> (PAN/IBAN/token, `Authorization`/`Cookie` header'ları maskelenir), ancak keyfi JSON'daki her PII
+> garanti yakalanamaz. Daha sıkı istiyorsanız `capturesBodies: false` ile init edin.
 
 ## 7. `print()` → `LogFox` göçü
 

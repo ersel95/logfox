@@ -12,6 +12,8 @@ struct NetworkLogEvent {
     var error: String?
     var requestBody: String?
     var responseBody: String?
+    var requestHeaders: [String: String]?
+    var responseHeaders: [String: String]?
 }
 
 /// Network olayını seviye + mesaj + metadata'ya dönüştürür. Saf fonksiyonlar → test edilebilir.
@@ -47,6 +49,9 @@ enum NetworkLogComposer {
         if let error = event.error { metadata["error"] = error }
         if let body = event.requestBody { metadata["requestBody"] = body }
         if let body = event.responseBody { metadata["responseBody"] = body }
+        // Header'lar ayrı anahtarlarla → BankingRedactor key-bazlı maskeleme (Authorization/Cookie/token) çalışır.
+        for (key, value) in event.requestHeaders ?? [:] { metadata["reqH.\(key)"] = value }
+        for (key, value) in event.responseHeaders ?? [:] { metadata["respH.\(key)"] = value }
         return metadata
     }
 }

@@ -32,7 +32,7 @@ public struct LogFoxConfiguration: Sendable {
     public var subsystem: String
 
     public init(
-        minimumLevel: LogLevel = .debug,
+        minimumLevel: LogLevel = .trace,   // default açık: tüm seviyeler yakalanır
         inMemoryCapacity: Int = 2000,
         persistsToDisk: Bool = true,
         maxFileSize: Int = 1_048_576,        // 1 MB
@@ -58,7 +58,7 @@ public struct LogFoxConfiguration: Sendable {
 
     /// Bankacılık uygulamaları için önerilen profil (redaksiyon açık, diske yazar).
     public static let bankingDefault = LogFoxConfiguration(
-        minimumLevel: .debug,
+        minimumLevel: .trace,   // default açık: tüm seviyeler
         inMemoryCapacity: 3000,
         persistsToDisk: true,
         redactor: BankingRedactor()

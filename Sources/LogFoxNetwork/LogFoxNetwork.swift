@@ -20,16 +20,24 @@ public enum LogFoxNetwork {
         set { box.value = newValue }
     }
 
-    /// Yakalama protokolünü verilen `URLSessionConfiguration`'a enjekte eder
-    /// (mevcut `NFXProtocol` enjeksiyonuyla aynı patern — başa eklenir).
-    public static func install(into configuration: URLSessionConfiguration) {
+    /// Yakalama protokolünü verilen `URLSessionConfiguration`'a enjekte eder ve yakalama
+    /// parametrelerini **init'te** ayarlar (mevcut `NFXProtocol` enjeksiyonuyla aynı patern).
+    /// - Parameters:
+    ///   - configuration: Protokolün başa ekleneceği session config.
+    ///   - networkConfiguration: Yakalama filtreleri (gövde/header default açık).
+    public static func install(
+        into configuration: URLSessionConfiguration,
+        with networkConfiguration: LogFoxNetworkConfiguration = .default
+    ) {
+        self.configuration = networkConfiguration
         var classes = configuration.protocolClasses ?? []
         classes.insert(LogFoxURLProtocol.self, at: 0)
         configuration.protocolClasses = classes
     }
 
-    /// `URLSession.shared` ve global istekler için protokolü kaydeder.
-    public static func installGlobally() {
+    /// `URLSession.shared` ve global istekler için protokolü kaydeder ve yakalama parametrelerini init'te ayarlar.
+    public static func installGlobally(_ networkConfiguration: LogFoxNetworkConfiguration = .default) {
+        self.configuration = networkConfiguration
         URLProtocol.registerClass(LogFoxURLProtocol.self)
     }
 

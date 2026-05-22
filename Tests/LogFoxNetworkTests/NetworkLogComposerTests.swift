@@ -49,9 +49,20 @@ final class NetworkLogComposerTests: XCTestCase {
         XCTAssertNil(metadata["status"])
     }
 
-    func testConfigurationDefaults() {
+    func testConfigurationDefaultsOpen() {
         let config = LogFoxNetworkConfiguration.default
-        XCTAssertFalse(config.capturesBodies) // banking-grade: gövde default kapalı
+        XCTAssertTrue(config.capturesBodies)  // default açık
+        XCTAssertTrue(config.capturesHeaders) // default açık
         XCTAssertEqual(config.category, .network)
+    }
+
+    func testMetadataIncludesHeadersAsSeparateKeys() {
+        var e = event(status: 200)
+        e.requestHeaders = ["Authorization": "Bearer x", "Accept": "application/json"]
+        e.responseHeaders = ["Set-Cookie": "sid=123"]
+        let metadata = NetworkLogComposer.metadata(for: e)
+        XCTAssertEqual(metadata["reqH.Authorization"], "Bearer x") // composer maskelemez; LogFox.log içinde redakte edilir
+        XCTAssertEqual(metadata["reqH.Accept"], "application/json")
+        XCTAssertEqual(metadata["respH.Set-Cookie"], "sid=123")
     }
 }

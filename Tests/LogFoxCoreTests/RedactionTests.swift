@@ -54,6 +54,18 @@ final class RedactionTests: XCTestCase {
         XCTAssertFalse(output["note"]?.contains("4508034012345678") ?? true)
     }
 
+    func testMasksPrefixedSensitiveHeaderKeys() {
+        // LogFoxNetwork header'ları "reqH.<Name>" / "respH.<Name>" anahtarlarıyla ekler.
+        let output = redactor.redact(metadata: [
+            "reqH.Authorization": "Bearer secret",
+            "respH.Set-Cookie": "sid=abc",
+            "reqH.Accept": "application/json"
+        ])
+        XCTAssertEqual(output["reqH.Authorization"], "***")
+        XCTAssertEqual(output["respH.Set-Cookie"], "***")
+        XCTAssertEqual(output["reqH.Accept"], "application/json")
+    }
+
     func testNoopRedactorLeavesTextUntouched() {
         let input = "kart 4508034012345678"
         XCTAssertEqual(NoopRedactor().redact(input), input)
