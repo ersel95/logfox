@@ -28,6 +28,9 @@ public final class LogViewerModel: ObservableObject {
     private var pendingWhilePaused: [LogEntry] = []
     private var streamTask: Task<Void, Never>?
 
+    /// Geçmiş (disk) yüklenirken `true`.
+    @Published public private(set) var isLoading: Bool = false
+
     public init() {}
 
     deinit { streamTask?.cancel() }
@@ -45,13 +48,21 @@ public final class LogViewerModel: ObservableObject {
         }
     }
 
-    /// Kapsama göre kayıtları (yeniden) yükler. Geçmiş modunda disk okunur.
+    /// Kapsama göre kayıtları (yeniden) yükler. Geçmiş modunda disk **asenkron** okunur (UI bloke olmaz).
     public func reload() {
-        switch scope {
-        case .session: entries = LogFox.snapshot()
-        case .history: entries = LogFox.loadPersistedEntries()
-        }
         pendingWhilePaused.removeAll()
+        switch scope {
+        case .session:
+            entries = LogFox.snapshot()
+        case .history:
+            isLoading = true
+            Task { [weak self] in
+                let loaded = await LogFox.loadPersistedEntries()
+                guard let self else { return }
+                self.entries = loaded
+                self.isLoading = false
+            }
+        }
     }
 
     public func setScope(_ newScope: Scope) {
@@ -140,8 +151,8 @@ public final class LogViewerModel: ObservableObject {
         pendingWhilePaused.removeAll()
     }
 
-    public func exportFileURL() -> URL? {
-        LogFox.exportFileURL()
+    public func exportFileURL() async -> URL? {
+        await LogFox.exportFileURL()
     }
 
     /// Kayıtlı dış araçlar (örn. Netfox geçiş butonu).

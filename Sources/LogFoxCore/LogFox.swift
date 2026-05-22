@@ -81,6 +81,14 @@ public enum LogFox {
         log(.critical, message(), category: category, metadata: metadata, file: file, line: line, function: function)
     }
 
+    /// Bir `Error` nesnesini doğrudan loglar. Mesaj `localizedDescription`, tip bilgisi metadata'ya eklenir.
+    public static func error(_ error: Error, category: LogCategory = .general, metadata: [String: String] = [:], file: String = #fileID, line: Int = #line, function: String = #function) {
+        var enriched = metadata
+        enriched["errorType"] = String(describing: type(of: error))
+        enriched["errorDetail"] = String(describing: error)
+        log(.error, error.localizedDescription, category: category, metadata: enriched, file: file, line: line, function: function)
+    }
+
     // MARK: - Okuma & yönetim (viewer bu API üzerinden besler)
 
     /// Mevcut tampondaki (bu oturum, bellek) kayıtların anlık kopyası (eskiden yeniye).
@@ -89,9 +97,10 @@ public enum LogFox {
     }
 
     /// Diskteki tüm kayıtlar — **önceki oturumlar dahil** (ring buffer kapasitesinden bağımsız).
-    /// TestFlight teşhisi için "uygulama yeniden başlamadan önce ne oldu" sorusunu cevaplar.
-    public static func loadPersistedEntries() -> [LogEntry] {
-        runtime.store?.loadPersisted() ?? []
+    /// Ağır dosya I/O arka planda yapılır; çağıran (ör. ana thread) bloke olmaz.
+    public static func loadPersistedEntries() async -> [LogEntry] {
+        guard let store = runtime.store else { return [] }
+        return await store.loadPersisted()
     }
 
     /// Yeni kayıtları canlı yayınlayan akış.
@@ -104,8 +113,9 @@ public enum LogFox {
         runtime.store?.clear()
     }
 
-    /// Tüm logları tek dosyada birleştirip paylaşılabilir bir URL döndürür.
-    public static func exportFileURL() -> URL? {
-        runtime.store?.exportFileURL()
+    /// Tüm logları tek dosyada birleştirip paylaşılabilir bir URL döndürür (asenkron, bloke etmez).
+    public static func exportFileURL() async -> URL? {
+        guard let store = runtime.store else { return nil }
+        return await store.exportFileURL()
     }
 }

@@ -105,12 +105,22 @@ final class LogStore: @unchecked Sendable {
         }
     }
 
-    /// Diskteki tüm kayıtları (oturumlar arası geçmiş dahil) ayrıştırıp döndürür.
-    func loadPersisted() -> [LogEntry] {
-        queue.sync { persistence?.loadEntries() ?? [] }
+    /// Diskteki tüm kayıtları (oturumlar arası geçmiş dahil) ASENKRON ayrıştırır.
+    /// Ağır dosya I/O serial kuyrukta yapılır → çağıran (ör. ana thread) bloke olmaz.
+    func loadPersisted() async -> [LogEntry] {
+        await withCheckedContinuation { continuation in
+            queue.async { [self] in
+                continuation.resume(returning: persistence?.loadEntries() ?? [])
+            }
+        }
     }
 
-    func exportFileURL() -> URL? {
-        queue.sync { persistence?.consolidatedTextURL(using: exportFormatter) }
+    /// Diskteki kayıtları birleştirip paylaşılabilir .log dosyası üretir (asenkron, bloke etmez).
+    func exportFileURL() async -> URL? {
+        await withCheckedContinuation { continuation in
+            queue.async { [self] in
+                continuation.resume(returning: persistence?.consolidatedTextURL(using: exportFormatter))
+            }
+        }
     }
 }

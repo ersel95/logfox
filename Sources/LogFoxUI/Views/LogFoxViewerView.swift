@@ -59,7 +59,10 @@ public struct LogFoxViewerView: View {
     @ViewBuilder
     private var logList: some View {
         let entries = model.filteredEntries
-        if entries.isEmpty {
+        if model.isLoading {
+            ProgressView("Geçmiş yükleniyor…")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if entries.isEmpty {
             ContentUnavailableView("Kayıt yok", systemImage: "doc.text.magnifyingglass", description: Text("Filtreyle eşleşen log bulunamadı."))
                 .frame(maxHeight: .infinity)
         } else {
@@ -135,9 +138,12 @@ public struct LogFoxViewerView: View {
     }
 
     private func share() {
-        guard let url = model.exportFileURL() else { return }
-        shareURL = url
-        isSharePresented = true
+        Task {
+            if let url = await model.exportFileURL() {
+                shareURL = url
+                isSharePresented = true
+            }
+        }
     }
 }
 #endif
