@@ -76,15 +76,15 @@ Entegrasyon dosyası `@_exported import LogFoxCore` içerdiğinden, çağrı yer
 - Gating'i `#if DEBUG`'a bağlama — TestFlight UAT/Prod config'te olur. Runtime feature flag kullan.
 
 ## (Opsiyonel) Network loglarını LogFox'ta listele — `LogFoxNetwork`
-İstenirse `LogFoxNetwork` ürününü ana app target'ına ekle. Sonra app'in URLSession/Alamofire
-`URLSessionConfiguration`'ının kurulduğu yeri bul (YapiKredi'de `BaseService`, `NFXProtocol`
-enjeksiyonunun yanı) ve ekle:
+`LogFoxNetwork` ürününü ana app target'ına ekle. **Önerilen — tek satır, networking koduna dokunmadan:**
+`LogFoxManager.initialize()` içine ekle (drop-in template'te zaten var):
 ```swift
 import LogFoxNetwork
-LogFoxNetwork.install(into: configuration)   // veya LogFoxNetwork.installGlobally()
+LogFoxNetwork.startAutomaticCapture()   // URLSessionConfiguration swizzle + global; SSL kırmaz
 ```
-İstek/yanıtlar `.network` kategorisinde, redaksiyondan geçerek LogFox'a düşer. Gövde + header
-yakalama **default açık**; kısmak istersen init'te ver: `install(into: config, with: LogFoxNetworkConfiguration(capturesBodies: false))`.
+İstek/yanıtlar `.network` kategorisinde, redaksiyondan geçerek LogFox'a düşer. Gövde + header yakalama
+**default açık**; kısmak için: `startAutomaticCapture(LogFoxNetworkConfiguration(capturesBodies: false))`.
+Belirli bir `URLSessionConfiguration`'a manuel enjekte etmek istersen `install(into:)` da var (gelişmiş).
 
 ## Genişletme: yeni bir araç eklemek
 Herhangi bir tanılama aracına geçiş, `ExternalToolBridge`'e uyan bir tip + host'ta `canImport` ile eklenir:

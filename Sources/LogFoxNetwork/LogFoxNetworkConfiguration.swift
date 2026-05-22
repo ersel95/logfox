@@ -17,16 +17,36 @@ public struct LogFoxNetworkConfiguration: Sendable {
     /// Network kayıtlarının düşeceği kategori.
     public var category: LogCategory
 
+    /// **Yalnız bu** URL parçalarını (host/path) içeren istekler yakalanır. Boş = tümü.
+    /// Örn. yalnız kendi API'niz: `["api-gateway", "myapp.com"]`.
+    public var includedURLs: [String]
+
+    /// Bu URL parçalarını içeren istekler **atlanır** (yakalanmaz — istek olduğu gibi geçer).
+    /// Örn. SDK gürültüsünü gizlemek: `["firebaseio", "crashlytics", "googleapis", "app-measurement"]`.
+    public var excludedURLs: [String]
+
     public init(
         capturesBodies: Bool = true,
         capturesHeaders: Bool = true,
         maxBodyLength: Int = 8000,
-        category: LogCategory = .network
+        category: LogCategory = .network,
+        includedURLs: [String] = [],
+        excludedURLs: [String] = []
     ) {
         self.capturesBodies = capturesBodies
         self.capturesHeaders = capturesHeaders
         self.maxBodyLength = max(0, maxBodyLength)
         self.category = category
+        self.includedURLs = includedURLs.map { $0.lowercased() }
+        self.excludedURLs = excludedURLs.map { $0.lowercased() }
+    }
+
+    /// Bu URL yakalanmalı mı? (allow/deny filtresi — `LogFoxURLProtocol.canInit`'te kullanılır)
+    public func shouldCapture(_ url: URL?) -> Bool {
+        guard let target = url?.absoluteString.lowercased() else { return includedURLs.isEmpty }
+        if excludedURLs.contains(where: { target.contains($0) }) { return false }
+        if !includedURLs.isEmpty { return includedURLs.contains(where: { target.contains($0) }) }
+        return true
     }
 
     public static let `default` = LogFoxNetworkConfiguration()

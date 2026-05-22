@@ -62,7 +62,7 @@ public final class LogFoxManager {
         LogFox.start(.bankingDefault)
 
         #if canImport(LogFoxNetwork)
-        // Network capture — BaseService/URLSession config'e DOKUNMADAN, SSL kırmadan (swizzle + trust kabul).
+        // Network capture — ağ katmanına/URLSession config'e DOKUNMADAN, SSL kırmadan (swizzle + trust kabul).
         LogFoxNetwork.startAutomaticCapture()
         #endif
 

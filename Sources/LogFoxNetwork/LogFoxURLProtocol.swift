@@ -20,7 +20,8 @@ final class LogFoxURLProtocol: URLProtocol {
         if URLProtocol.property(forKey: handledKey, in: request) != nil { return false }
         guard let scheme = request.url?.scheme?.lowercased(),
               scheme == "http" || scheme == "https" else { return false }
-        return true
+        // baseURL allow/deny filtresi: filtre dışı istekler yakalanmaz (olduğu gibi geçer).
+        return LogFoxNetwork.current.shouldCapture(request.url)
     }
 
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }

@@ -118,7 +118,7 @@ private struct PulseConsoleScreen: View {
 
 ## 3. Başlatmayı bağla
 
-`Application/YapiKredi_AzApp.swift` (mevcut Netfox init'inin yanına):
+App giriş noktanızda (SwiftUI `App.init` veya `AppDelegate.didFinishLaunching`, mevcut Netfox init'inin yanına):
 ```swift
 DispatchQueue.main.async {
     NetfoxManager.shared.initialize()   // (Netfox kullanılıyorsa) içinde setGesture(.custom)
@@ -148,18 +148,26 @@ geçiş butonu derin inceleme için kalır.
 
 `startAutomaticCapture()`, `URLSessionConfiguration`'ı swizzle ederek **tüm** session'lara (Alamofire dahil)
 protokolü otomatik enjekte eder ve proxy session sunucu trust'ını kabul eder → **SSL/sertifika kırılmaz**.
-`LogFoxManager.initialize()` içinde tek satır; **BaseService'e dokunmaya gerek yok** (drop-in template'te hazır):
+`LogFoxManager.initialize()` içinde tek satır; **ağ katmanınıza (URLSession config'iniz) dokunmaya gerek yok** (drop-in template'te hazır):
 
 ```swift
 import LogFoxNetwork
 LogFoxNetwork.startAutomaticCapture()                                // gövde+header default açık
-LogFoxNetwork.startAutomaticCapture(LogFoxNetworkConfiguration(capturesBodies: false)) // kısmak için
+
+// Hangi baseURL'leri yakalayacağını init'te filtrele:
+LogFoxNetwork.startAutomaticCapture(LogFoxNetworkConfiguration(
+    capturesBodies: false,
+    includedURLs: ["api-gateway"],                                   // YALNIZ kendi API'm
+    excludedURLs: ["firebaseio", "crashlytics", "googleapis", "app-measurement"] // SDK gürültüsünü gizle
+))
 ```
+> `includedURLs` boşsa tümü yakalanır. `excludedURLs`, `includedURLs`'ten önceliklidir. Filtre dışı
+> istekler **hiç yakalanmaz** (olduğu gibi geçer, redaksiyon/log maliyeti de olmaz).
 
 > **Neden bu yöntem?** Eskiden önerilen `install(into: sessionConfiguration)` yaklaşımı, isteği kendi proxy
 > session'ında yeniden başlattığı için host'un `ServerTrustManager`'ını (pinned/internal sertifika) taşımıyor
 > ve iç UAT sertifikalarında "certificate invalid" hatasıyla **trafiği kırıyordu**. `startAutomaticCapture`
-> hem bu sorunu çözer (trust kabul) hem de BaseService'e dokunmaz.
+> hem bu sorunu çözer (trust kabul) hem de ağ katmanınıza dokunmaz.
 
 ### Gelişmiş (opsiyonel): manuel enjeksiyon
 
@@ -185,7 +193,7 @@ print("⚠️ token decode hatası")
 LogFoxManager.shared.warning("token decode hatası", category: .security)
 LogFoxManager.shared.error(error, category: .payment, metadata: ["code": code])
 ```
-Kademeli göç önerilir. Network logları BaseService'teki `LogFoxNetwork.install` ile otomatik yakalanır;
+Kademeli göç önerilir. Network logları `LogFoxNetwork.startAutomaticCapture()` ile otomatik yakalanır;
 manager'a yalnız üst-seviye iş olayları girer.
 
 ### Kategorileri genişletme

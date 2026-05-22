@@ -49,6 +49,23 @@ final class NetworkLogComposerTests: XCTestCase {
         XCTAssertNil(metadata["status"])
     }
 
+    func testURLFilterIncludeExclude() {
+        let onlyMine = LogFoxNetworkConfiguration(includedURLs: ["api-gateway"])
+        XCTAssertTrue(onlyMine.shouldCapture(URL(string: "https://api-gateway.example.com/x")))
+        XCTAssertFalse(onlyMine.shouldCapture(URL(string: "https://firebaseio.com/y")))
+
+        let noSDK = LogFoxNetworkConfiguration(excludedURLs: ["firebaseio", "crashlytics"])
+        XCTAssertFalse(noSDK.shouldCapture(URL(string: "https://app.firebaseio.com/y")))
+        XCTAssertTrue(noSDK.shouldCapture(URL(string: "https://api-gateway.example.com/x")))
+
+        // exclude, include'dan önceliklidir
+        let both = LogFoxNetworkConfiguration(includedURLs: ["example.com"], excludedURLs: ["/health"])
+        XCTAssertTrue(both.shouldCapture(URL(string: "https://example.com/transfer")))
+        XCTAssertFalse(both.shouldCapture(URL(string: "https://example.com/health")))
+
+        XCTAssertTrue(LogFoxNetworkConfiguration.default.shouldCapture(URL(string: "https://anything.com")))
+    }
+
     func testConfigurationDefaultsOpen() {
         let config = LogFoxNetworkConfiguration.default
         XCTAssertTrue(config.capturesBodies)  // default açık
