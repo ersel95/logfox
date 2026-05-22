@@ -16,6 +16,13 @@ struct TextViewerView: View {
         Formatting.isJSON(rawText) ? Formatting.prettyJSON(rawText) : rawText
     }
 
+    /// JSON ise renklendirilmiş, değilse düz metin.
+    private var bodyText: Text {
+        Formatting.looksLikeJSON(filtered)
+            ? Text(JSONHighlighter.attributed(filtered))
+            : Text(filtered)
+    }
+
     private var filtered: String {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return display }
@@ -29,7 +36,7 @@ struct TextViewerView: View {
         Group {
             if wrapLines {
                 ScrollView(.vertical) {
-                    Text(filtered)
+                    bodyText
                         .font(.callout.monospaced())
                         .textSelection(.enabled)
                         .fixedSize(horizontal: false, vertical: true)
@@ -38,7 +45,7 @@ struct TextViewerView: View {
                 }
             } else {
                 ScrollView([.vertical, .horizontal]) {
-                    Text(filtered)
+                    bodyText
                         .font(.callout.monospaced())
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)

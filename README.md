@@ -78,15 +78,27 @@ Netfox kullanılıyorsa shake'ini kapatın (`NFX.sharedInstance().setGesture(.cu
 
 ### Network loglarını LogFox'ta listelemek (LogFoxNetwork)
 
+**Tek satır, networking koduna dokunmadan** (URLSessionConfiguration swizzle + global; SSL kırmaz):
+
 ```swift
 import LogFoxNetwork
-LogFoxNetwork.install(into: sessionConfiguration)   // gövde+header default açık; veya .installGlobally()
-// parametreleri init'te kısmak için:
-LogFoxNetwork.install(into: sessionConfiguration, with: LogFoxNetworkConfiguration(capturesBodies: false))
+LogFoxNetwork.startAutomaticCapture()   // gövde+header default açık
+
+// Hangi baseURL'lerin yakalanacağını init'te filtrele:
+LogFoxNetwork.startAutomaticCapture(LogFoxNetworkConfiguration(
+    capturesBodies: false,
+    includedURLs: ["api-gateway"],                                   // yalnız kendi API'n (boş = tümü)
+    excludedURLs: ["firebaseio", "crashlytics", "googleapis"]        // SDK gürültüsünü gizle
+))
 ```
 İstek/yanıtlar `.network` kategorisinde, **BankingRedactor'dan geçerek** LogFox listesine düşer
 (app + network tek yerde). Gövde + header yakalama **default açık**; `Authorization`/`Cookie` ve
-PAN/IBAN/token maskelenir. Yakalama parametreleri `install(into:with:)` ile init'te verilir.
+PAN/IBAN/token maskelenir. `includedURLs`/`excludedURLs` ile **baseURL filtreleme**, `excludedURLs`
+önceliklidir; filtre dışı istekler hiç yakalanmaz.
+
+- **JSON gövdeler** otomatik **pretty-print + syntax renklendirme** ile gösterilir (detay → "Gövdeyi görüntüle").
+- Belirli bir config'e manuel enjeksiyon için `install(into:)` (gelişmiş) de var.
+- **Yalnız non-prod debug** içindir (trust kabulü + gövde loglama) — PROD'da çalıştırmayın.
 
 - **Adım adım entegrasyon:** [`INTEGRATION.md`](INTEGRATION.md)
 - **AI agent için makine-takipli talimat:** [`AGENTS.md`](AGENTS.md)
