@@ -1,0 +1,74 @@
+# LogFox 🦊📝
+
+Netfox'un network trafiği için yaptığını **uygulama logları** için yapan, generic, taşınabilir bir Swift logging + in-app log viewer kütüphanesi.
+
+> **Amaç:** TestFlight'a özelliği açık gönderdiğiniz kullanıcıların loglarını cihazda görüntüleyip paylaşabilmek. Cihaz sallandığında loglar düz metin olarak açılır.
+
+Tasarım/fizibilite detayları için ana projedeki `LOGFOX_REPORT.md`'ye bakın.
+
+## Durum
+
+| Faz | Kapsam | Durum |
+|---|---|---|
+| **0 — İskelet** | SPM, model'ler | ✅ |
+| **1 — Core motor** | Ring buffer, redaksiyon, disk persistans, OSLog köprüsü, facade | ✅ |
+| 2 — Viewer (LogFoxUI) | Shake → SwiftUI düz metin viewer, filtre/arama/paylaşım | ⏳ |
+| 3 — Netfox bridge | Shake sahipliği + "Netfox'a geç" butonu | ⏳ |
+| 4 — Köprüler | OSLogStore importer, swift-log backend | ⏳ |
+
+## Kurulum (SPM)
+
+```swift
+.package(url: "https://github.com/ersel95/logfox.git", from: "0.1.0")
+```
+Target bağımlılığı: `LogFoxCore`.
+
+## Kullanım
+
+```swift
+import LogFoxCore
+
+// Uygulama başlangıcında (bir kez):
+LogFox.start(.bankingDefault)   // redaksiyon açık, diske yazar, OSLog'a yansıtır
+
+// Loglama:
+LogFox.info("Login başarılı", category: .auth, metadata: ["method": "biometric"])
+LogFox.warning("Token yenilenecek", category: .session)
+LogFox.error("Transfer reddedildi", category: .payment, metadata: ["code": code])
+
+// Okuma / yönetim (viewer bunu kullanır):
+let entries = LogFox.snapshot()          // mevcut tampon
+for await entry in LogFox.stream() { … } // canlı akış
+let url = LogFox.exportFileURL()         // paylaşılabilir .log
+LogFox.clear()
+
+// Kill switch:
+LogFox.isEnabled = false
+```
+
+## Mimari (Core)
+
+```
+LogFox (facade)
+  └─ LogFoxRuntime          # yaşam döngüsü, kill switch, seviye eşiği (kilitle korunur)
+       └─ LogStore          # serial kuyruk: redaksiyon → ring buffer → disk → OSLog → canlı akış
+            ├─ Redactor               # BankingRedactor: PAN/IBAN/email/hassas-key maskeleme (default)
+            ├─ FilePersistence        # boyut bazlı rotation + retention + data protection
+            ├─ LogFormatter           # PlainText / JSON (NDJSON)
+            └─ OSLogMirror            # os.Logger köprüsü (Console.app)
+```
+
+- **Banking-grade redaksiyon varsayılan açık** — ham PII (PAN/CVV/IBAN/OTP/token) buffer'a, diske veya konsola asla yazılmaz.
+- **UIKit/SwiftUI bağımlılığı yok** → her platformda derlenir, test edilebilir.
+- **Async/non-blocking** — `@autoclosure` ile seviye eşiğin altındaysa mesaj compute edilmez; yazma serial kuyrukta.
+
+## Geliştirme
+
+```bash
+swift build
+swift test
+```
+
+## Lisans
+
+TBD.
