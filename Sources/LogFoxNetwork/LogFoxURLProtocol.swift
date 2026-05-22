@@ -35,6 +35,13 @@ final class LogFoxURLProtocol: URLProtocol {
         URLProtocol.setProperty(true, forKey: Self.handledKey, in: mutable)
 
         let config = URLSessionConfiguration.default
+        // Zincirlenen protokoller (örn. NFXProtocol) proxy session'da yakalasın diye eklenir.
+        // LogFoxURLProtocol bu listeye girmez (sonsuz döngüyü handledKey + dışlama önler).
+        let selfID = ObjectIdentifier(LogFoxURLProtocol.self)
+        let chained = LogFoxNetwork.chainedProtocolClasses.filter { ObjectIdentifier($0) != selfID }
+        if !chained.isEmpty {
+            config.protocolClasses = chained + (config.protocolClasses ?? [])
+        }
         let session = URLSession(configuration: config, delegate: self, delegateQueue: nil)
         self.proxySession = session
         self.proxyTask = session.dataTask(with: mutable as URLRequest)

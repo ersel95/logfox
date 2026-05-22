@@ -162,9 +162,28 @@ LogFoxNetwork.install(
 LogFoxNetwork.installGlobally()                     // veya .installGlobally(myConfig)
 ```
 
-> **YapiKredi'de:** `BaseService` içinde `#if !PROD` ile `NFXProtocol` `configuration.protocolClasses`'a
-> eklenen yere, `LogFoxNetwork.install(into: configuration)` satırını ekleyin. Network kayıtları viewer'da
-> `network` kategori chip'iyle görünür, kategori filtresinden ayrılabilir.
+### Netfox/Pulse ile BİRLİKTE yakalama (zincirleme)
+
+Aynı session'da iki `URLProtocol` çakışır: ilk yakalayan, isteği kendi temiz session'ında yeniden
+başlatır ve diğeri trafiği göremez. İkisinin de yakalaması için LogFox'u **zincirleyin** — LogFox
+yakalar, sonra isteği zincirlenen protokole (Netfox) devreder:
+
+```swift
+LogFoxNetwork.install(into: configuration, chainingTo: [NFXProtocol.self])
+// Akış: istek → LogFox (yakala+redakte) → NFXProtocol (Netfox yakalar) → ağ
+```
+
+> **YapiKredi'de:** `BaseService`'te `NFXProtocol`'ün `configuration.protocolClasses`'a eklendiği yerde,
+> LogFox etkinse NFX'i ana session'a koymak yerine LogFox'a zincirleyin:
+> ```swift
+> if !Feature.isDisabled(.logFox) {
+>     LogFoxNetwork.install(into: configuration,
+>         chainingTo: !Feature.isDisabled(.netfox) ? [NFXProtocol.self] : [])
+> } else if !Feature.isDisabled(.netfox) {
+>     configuration.protocolClasses = [NFXProtocol.self] + (configuration.protocolClasses ?? [])
+> }
+> ```
+> Network kayıtları viewer'da `network` kategori chip'iyle görünür; Netfox switch'i de dolu kalır.
 >
 > **Güvenlik:** Gövde/header default açıktır → tüm trafik loglanır. Hepsi `BankingRedactor`'dan geçer
 > (PAN/IBAN/token, `Authorization`/`Cookie` header'ları maskelenir), ancak keyfi JSON'daki her PII
