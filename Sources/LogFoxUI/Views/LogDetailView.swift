@@ -2,10 +2,18 @@
 import SwiftUI
 import LogFoxCore
 
+/// Paylaşım sheet'i için Identifiable sarmalayıcı.
+private struct ShareItem: Identifiable {
+    let id = UUID()
+    let text: String
+}
+
 /// Tek kaydın detayı — Pulse tarzı: renkli status başlığı + gruplu List + alt ekranlara
 /// navigation (header'lar, gövde, cURL, metrikler). `.network` dışı kayıtlar seviye + mesaj + metadata.
 struct LogDetailView: View {
     let entry: LogEntry
+
+    @State private var shareItem: ShareItem?
 
     private var network: NetworkLogInfo? { NetworkLogInfo(entry: entry) }
 
@@ -21,13 +29,45 @@ struct LogDetailView: View {
         .navigationTitle(network != nil ? "Network" : "Log")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { UIPasteboard.general.string = entry.oneLineDescription } label: {
-                    Image(systemName: "doc.on.doc")
-                }
-                .accessibilityLabel("Kopyala")
-            }
+            ToolbarItem(placement: .topBarTrailing) { shareMenu }
         }
+        .sheet(item: $shareItem) { item in
+            ShareSheet(items: [item.text])
+        }
+    }
+
+    /// Netfox tarzı paylaşım menüsü: network için Basit/Tam/cURL, log için tam metin; ayrıca kopyala.
+    @ViewBuilder
+    private var shareMenu: some View {
+        Menu {
+            if let info = network {
+                Button {
+                    share(ShareFormatter.simpleNetworkLog(entry: entry, info: info))
+                } label: { Label("Basit log", systemImage: "doc.text") }
+                Button {
+                    share(ShareFormatter.fullNetworkLog(entry: entry, info: info))
+                } label: { Label("Tam log (gövdelerle)", systemImage: "doc.richtext") }
+                Button {
+                    share(CurlBuilder.curl(from: info))
+                } label: { Label("cURL", systemImage: "terminal") }
+            } else {
+                Button {
+                    share(ShareFormatter.logDetail(entry: entry))
+                } label: { Label("Logu paylaş", systemImage: "doc.text") }
+            }
+            Divider()
+            Button {
+                UIPasteboard.general.string = network.map { ShareFormatter.fullNetworkLog(entry: entry, info: $0) }
+                    ?? ShareFormatter.logDetail(entry: entry)
+            } label: { Label("Panoya kopyala", systemImage: "doc.on.doc") }
+        } label: {
+            Image(systemName: "square.and.arrow.up")
+        }
+        .accessibilityLabel("Paylaş")
+    }
+
+    private func share(_ text: String) {
+        shareItem = ShareItem(text: text)
     }
 
     // MARK: - Network
