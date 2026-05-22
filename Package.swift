@@ -11,7 +11,10 @@ let package = Package(
         // Çekirdek motor (UIKit/SwiftUI'sız, her platformda).
         .library(name: "LogFoxCore", targets: ["LogFoxCore"]),
         // In-app viewer (shake → düz metin). iOS hedefli; içerik `#if canImport(UIKit)` ile gate'li.
-        .library(name: "LogFoxUI", targets: ["LogFoxUI"])
+        .library(name: "LogFoxUI", targets: ["LogFoxUI"]),
+        // Opsiyonel network capture (URLProtocol). İstek/yanıtları .network kategorisinde,
+        // BankingRedactor'dan geçerek LogFox'a loglar. UIKit'siz, her platformda.
+        .library(name: "LogFoxNetwork", targets: ["LogFoxNetwork"])
     ],
     targets: [
         .target(
@@ -27,6 +30,10 @@ let package = Package(
                 .enableExperimentalFeature("StrictConcurrency")
             ]
         ),
+        .target(
+            name: "LogFoxNetwork",
+            dependencies: ["LogFoxCore"]
+        ),
         .testTarget(
             name: "LogFoxCoreTests",
             dependencies: ["LogFoxCore"]
@@ -34,6 +41,10 @@ let package = Package(
         .testTarget(
             name: "LogFoxUITests",
             dependencies: ["LogFoxUI"]
+        ),
+        .testTarget(
+            name: "LogFoxNetworkTests",
+            dependencies: ["LogFoxNetwork"]
         )
     ]
 )

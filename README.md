@@ -16,6 +16,7 @@ Tasarım/fizibilite detayları için ana projedeki `LOGFOX_REPORT.md`'ye bakın.
 | **1 — Core motor** | Ring buffer, redaksiyon, NDJSON disk persistans + oturumlar arası geçmiş, OSLog köprüsü, facade | ✅ |
 | **2 — Viewer (LogFoxUI)** | Shake → SwiftUI düz metin viewer, **Oturum/Geçmiş** kapsamı, filtre/arama/paylaşım, canlı akış | ✅ |
 | **3 — Araç köprüleri** | `ExternalToolBridge` + `install(tools:)` + `presentExternal` → **Netfox & Pulse** geçişi, shake sahipliği devri (app tarafı: `INTEGRATION.md` / `AGENTS.md`) | ✅ |
+| **N — Network capture (LogFoxNetwork)** | Opsiyonel URLProtocol; istek/yanıt `.network` kategorisinde, redaksiyonlu → app+network tek listede | ✅ |
 | 4 — Köprüler | OSLogStore importer, swift-log backend | ⏳ |
 
 ## Kurulum (SPM)
@@ -68,7 +69,17 @@ LogFoxUI.presentExternal { ConsoleView() }    // Pulse gibi gömülebilir araçl
 ```
 
 Shake sahibi LogFox'tur; viewer içinden **seçilen tek** araca (Netfox **veya** Pulse) geçilir.
+Geçiş butonu artık ••• menüsünde değil, viewer'ın **alt barında** belirgindir.
 Netfox kullanılıyorsa shake'ini kapatın (`NFX.sharedInstance().setGesture(.custom)`).
+
+### Network loglarını LogFox'ta listelemek (LogFoxNetwork)
+
+```swift
+import LogFoxNetwork
+LogFoxNetwork.install(into: sessionConfiguration)   // veya .installGlobally()
+```
+İstek/yanıtlar `.network` kategorisinde, **BankingRedactor'dan geçerek** LogFox listesine düşer
+(app + network tek yerde). Gövde yakalama (`capturesBodies`) banking-grade nedeniyle default kapalı.
 
 - **Adım adım entegrasyon:** [`INTEGRATION.md`](INTEGRATION.md)
 - **AI agent için makine-takipli talimat:** [`AGENTS.md`](AGENTS.md)

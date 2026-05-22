@@ -49,6 +49,17 @@ NFX.sharedInstance().setGesture(.custom)   // shake artık LogFox'un
 - `LogFox.start(...)` yalnız bir kez çağrılır (idempotent ama gereksiz tekrar etme).
 - Gating'i `#if DEBUG`'a bağlama — TestFlight UAT/Prod config'te olur. Runtime feature flag kullan.
 
+## (Opsiyonel) Network loglarını LogFox'ta listele — `LogFoxNetwork`
+İstenirse `LogFoxNetwork` ürününü ana app target'ına ekle. Sonra app'in URLSession/Alamofire
+`URLSessionConfiguration`'ının kurulduğu yeri bul (YapiKredi'de `BaseService`, `NFXProtocol`
+enjeksiyonunun yanı) ve ekle:
+```swift
+import LogFoxNetwork
+LogFoxNetwork.install(into: configuration)   // veya LogFoxNetwork.installGlobally()
+```
+İstek/yanıtlar `.network` kategorisinde, redaksiyondan geçerek LogFox'a düşer. `capturesBodies`
+default kapalı (banking-grade); gerekiyorsa `LogFoxNetwork.configuration` ile aç.
+
 ## Genişletme: yeni bir araç eklemek
 Herhangi bir tanılama aracına geçiş, `ExternalToolBridge`'e uyan bir tip + host'ta `canImport` ile eklenir:
 ```swift
