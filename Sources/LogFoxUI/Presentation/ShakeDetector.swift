@@ -1,19 +1,33 @@
 #if canImport(UIKit)
 import UIKit
+import ObjectiveC
 
 public extension Notification.Name {
     /// Cihaz sallandığında gönderilir. `LogFoxPresenter` bunu dinler.
     static let logFoxShake = Notification.Name("com.logfox.shake")
 }
 
-/// Sallama algılama, `UIWindow.motionEnded` üzerinden tüm uygulama için tek noktadan yapılır.
-/// Bu, SwiftUI/UIKit ayrımı olmadan çalışan yaygın (de-facto) yaklaşımdır.
-extension UIWindow {
-    open override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
-        if motion == .motionShake {
-            NotificationCenter.default.post(name: .logFoxShake, object: nil)
+/// Sallama algılama: `UIWindow.motionEnded` **runtime swizzle** ile yapılır.
+/// (Salt extension-override SPM statik kütüphanede dead-strip edilip ObjC runtime'a kaydolmayabilir;
+/// swizzle `install()`'dan çağrıldığı için referanslı kalır.)
+enum ShakeDetector {
+
+    private typealias MotionEndedIMP = @convention(c) (AnyObject, Selector, UIEvent.EventSubtype, UIEvent?) -> Void
+
+    /// `UIWindow.motionEnded`'i bir kez swizzle eder; shake'te `.logFoxShake` post eder, sonra orijinali çağırır.
+    static func install() {
+        let selector = #selector(UIResponder.motionEnded(_:with:))
+        guard let method = class_getInstanceMethod(UIWindow.self, selector) else { return }
+        let original = unsafeBitCast(method_getImplementation(method), to: MotionEndedIMP.self)
+        let typeEncoding = method_getTypeEncoding(method)
+
+        let block: @convention(block) (AnyObject, UIEvent.EventSubtype, UIEvent?) -> Void = { receiver, motion, event in
+            if motion == .motionShake {
+                NotificationCenter.default.post(name: .logFoxShake, object: nil)
+            }
+            original(receiver, selector, motion, event)
         }
-        super.motionEnded(motion, with: event)
+        class_replaceMethod(UIWindow.self, selector, imp_implementationWithBlock(block), typeEncoding)
     }
 }
 #endif

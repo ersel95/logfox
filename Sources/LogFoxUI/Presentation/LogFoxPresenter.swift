@@ -19,6 +19,7 @@ final class LogFoxPresenter {
     /// Sallama → aç/kapat gözlemcisini kurar. İdempotent.
     func installShakeObserver() {
         guard shakeObserver == nil else { return }
+        ShakeDetector.install()
         shakeObserver = NotificationCenter.default.addObserver(
             forName: .logFoxShake,
             object: nil,
